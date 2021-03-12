@@ -4,9 +4,11 @@ from fastapi import Depends, FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 
-from . import crud, models, schemas
-from .database import get_db, engine
-from .validators import is_valid_url
+from app.db import crud, models
+from app.db.database import get_db, engine
+from app.utils.validators import is_valid_url
+from . import schemas
+from .scraper import Scraper
 
 
 models.Base.metadata.create_all(bind=engine)
@@ -14,12 +16,16 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 
-def scrape_website():
-    pass
+def scrape_website(url: str, id: int):
+    Scraper(url, id).scrape()
 
 
 @app.post("/websites/", response_model=schemas.Website)
-def post_website(website: schemas.WebsiteCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def post_website(
+    website: schemas.WebsiteCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
 
     # validate website.url if right
     if not is_valid_url(website.url):
@@ -33,9 +39,9 @@ def post_website(website: schemas.WebsiteCreate, background_tasks: BackgroundTas
     if db_website:
         raise HTTPException(status_code=400, detail="Website already processed.")
 
-    # start background task
-    # background_tasks.add_task(function, parameters)
-    return crud.create_website(db=db, website=website)
+    db_website = crud.create_website(db=db, website=website)
+    background_tasks.add_task(scrape_website, url=website.url, id=db_website.id)
+    return db_website
 
 
 @app.get("/websites/", response_model=List[schemas.Website])
@@ -70,12 +76,11 @@ def download_website(website_id: int, db: Session = Depends(get_db)):
 
 # @app.delete("/websites/{website_id}/")
 # def delete_website(website_id: int, db: Session = Depends(get_db)):
-    # db_website = crud.get_website(db, website_id=website_id)
+# db_website = crud.get_website(db, website_id=website_id)
 
-    # if db_website is None:
-        # raise HTTPException(status_code=404, detail="Website not found")
+# if db_website is None:
+# raise HTTPException(status_code=404, detail="Website not found")
 
-    # crud.delete_website(db, website_id=website_id)
+# crud.delete_website(db, website_id=website_id)
 
-    # return JSONResponse(status_code=200, content={"detail": "Website deleted"})
-
+# return JSONResponse(status_code=200, content={"detail": "Website deleted"})

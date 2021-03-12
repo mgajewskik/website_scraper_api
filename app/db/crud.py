@@ -2,7 +2,8 @@ import datetime
 
 from sqlalchemy.orm import Session
 
-from . import models, schemas
+from . import models
+from app import schemas
 
 
 def get_website(db: Session, website_id: int):
@@ -23,8 +24,3 @@ def create_website(db: Session, website: schemas.WebsiteCreate):
     db.commit()
     db.refresh(db_website)
     return db_website
-
-
-# def delete_website(db: Session, website_id: int):
-    # db.query(models.Website).filter(models.Website.id == website_id).delete()
-    # db.commit()
