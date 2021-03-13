@@ -1,6 +1,9 @@
+import os
 import re
 from pathlib import Path
 from typing import Iterable
+
+from app.settings import DATA_PATH
 
 
 def make_dirs(path: str):
@@ -15,9 +18,10 @@ def get_filename_from_url(url: str) -> str:
 
 
 def get_cleaned_filter(filter: Iterable[str]) -> str:
+    """ Join whitespace stripped elements of the filter strings. """
 
-    joined_text = u" ".join(t.strip() for t in filter)
-    return re.sub("\n", " ", joined_text)
+    joined_text = " ".join(t.strip() for t in filter)
+    return re.sub("\n", " ", joined_text).strip()
 
 
 def remove_get_pair(url: str) -> str:
@@ -31,3 +35,13 @@ def remove_get_pair(url: str) -> str:
         return url[:index]
     except ValueError:
         return url
+
+
+def is_zipped_file(id: int) -> bool:
+
+    return os.path.isfile(os.path.join(DATA_PATH, f"{str(id)}.zip"))
+
+
+def get_zipped_filename(id: int) -> str:
+
+    return os.path.join(DATA_PATH, f"{str(id)}.zip")

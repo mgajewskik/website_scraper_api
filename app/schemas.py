@@ -17,7 +17,6 @@ class Website(WebsiteBase):
     started_at: datetime.datetime
     status: str
     completed_at: Union[datetime.datetime, None]
-    text: Union[str, None]
 
     class Config:
         orm_mode = True

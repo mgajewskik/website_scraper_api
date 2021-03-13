@@ -1,0 +1,1 @@
+html     JSON:API — A specification for building APIs in JSON    If you’ve ever argued with your team about the way your JSON responses     should be formatted, JSON:API can be your anti-bikeshedding tool.

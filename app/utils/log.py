@@ -10,7 +10,6 @@ LOG_CONFIG = {
             "()": "uvicorn.logging.DefaultFormatter",
             "fmt": "%(levelprefix)s %(asctime)s %(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S",
-
         },
     },
     "handlers": {
@@ -29,6 +28,9 @@ dictConfig(LOG_CONFIG)
 logger = logging.getLogger("api-logger")
 
 
-def log_debug(message: str, exc_info: bool = False):
+def debug(message: str, exc_info: bool = False):
 
     logger.debug(message, exc_info=exc_info)
+
+
+debug("Logging start")

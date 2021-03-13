@@ -1,28 +1,13 @@
-import os
+from typing import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 
-# pg = {
-# "host": os.getenv("PG_HOST"),
-# "db": os.getenv("PG_DATABASE"),
-# "user": os.getenv("PG_USER"),
-# "password": os.getenv("PG_PASSWORD"),
-# "port": os.getenv("PG_PORT"),
-# }
+from app.settings import POSTGRES_URL
+from . import models
+from app.utils import log
 
-pg = {
-    "host": "localhost",
-    "db": "postgres",
-    "user": "postgres",
-    "password": "lytbryt234",
-    "port": 5433,
-}
-
-POSTGRES_URL = (
-    f"postgresql://{pg['user']}:{pg['password']}@{pg['host']}:{pg['port']}/{pg['db']}"
-)
 
 engine = create_engine(POSTGRES_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -30,9 +15,15 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-def get_db():
+def get_db() -> Generator[Session, Session, None]:
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+def setup_db():
+
+    models.Base.metadata.create_all(bind=engine)
+    log.debug("All tables created. Database ready.")

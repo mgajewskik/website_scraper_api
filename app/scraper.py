@@ -6,74 +6,92 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from bs4.element import Comment
 
+from app.settings import DATA_PATH
+from app.utils.log import debug
 from app.utils.validators import is_valid_url
-from app.utils.utils import make_dirs, get_filename_from_url, get_cleaned_filter, remove_get_pair
+from app.utils.utils import (
+    make_dirs,
+    get_filename_from_url,
+    get_cleaned_filter,
+    remove_get_pair,
+)
 
 
 class Scraper:
     def __init__(self, url: str, id: int):
         self.url = url
-        self.id = id
+        self.id = str(id)
 
-        self.visible_tags = ['style', 'script', 'head', 'title', 'meta', '[document]']
-        self.download_path = os.path.join("data", str(id))
+        self.visible_tags = ["style", "script", "head", "title", "meta", "[document]"]
+        self.download_path = os.path.join(DATA_PATH, self.id)
         self.text_filename = "text.txt"
 
         self.text = ""
         self.img_urls = list()
 
-    def is_tag_visible(self, element):
-        if element.parent.name in self.visible_tags:
-            return False
-        if isinstance(element, Comment):
-            return False
-        return True
+    def get_url_text(self) -> str:
+        return requests.get(self.url).text
 
-    def parse_text(self, soup: BeautifulSoup):
+    def _is_tag_visible(self, element):
 
-        self.text = get_cleaned_filter(filter(self.is_tag_visible, soup.findAll(text=True)))
+        return not (
+            element.parent.name in self.visible_tags and isinstance(element, Comment)
+        )
 
-    def parse_img_urls(self, soup: BeautifulSoup):
+    def _parse_text(self, soup: BeautifulSoup):
+
+        self.text = get_cleaned_filter(
+            filter(self._is_tag_visible, soup.findAll(text=True))
+        )
+        debug(f"Text from the url parsed, length: {len(self.text)}")
+
+    def _parse_img_urls(self, soup: BeautifulSoup):
 
         for img in soup.find_all("img"):
 
             img_url = img.attrs.get("src")
-            if not img_url:
-                continue
+            full_img_url = urljoin(self.url, remove_get_pair(img_url))
 
-            img_url = urljoin(self.url, remove_get_pair(img_url))
-            if not is_valid_url(img_url):
-                continue
+            if img_url and is_valid_url(full_img_url):
+                self.img_urls.append(img_url)
 
-            self.img_urls.append(img_url)
+        debug(f"Image urls from the main url extracted - {len(self.img_urls)} urls.")
 
-    def save_text(self):
+    def _save_text(self):
 
         with open(os.path.join(self.download_path, self.text_filename), "w") as f:
             f.write(self.text)
 
-    def download_images(self):
+        debug(f"Text saved into {self.download_path}")
 
+    def _download_images(self):
+
+        count = 0
         for img in self.img_urls:
             filename = os.path.join(self.download_path, get_filename_from_url(img))
-            r = requests.get(img, stream=True)
             if is_valid_url(img):
-                with open(filename, 'wb') as f:
+                r = requests.get(img, stream=True)
+                count += 1
+                with open(filename, "wb") as f:
                     for chunk in r:
                         f.write(chunk)
 
+        debug(f"Saved {count} images into {self.download_path}")
+
     def scrape(self) -> "Scraper":
+        debug(f"Scraping started for {self.id}: {self.url}")
 
-        soup = BeautifulSoup(requests.get(self.url).text, "html.parser")
+        soup = BeautifulSoup(self.get_url_text(), "html.parser")
 
-        self.parse_text(soup)
-        self.parse_img_urls(soup)
+        self._parse_text(soup)
+        self._parse_img_urls(soup)
 
         make_dirs(self.download_path)
-        self.save_text()
-        self.download_images()
+        self._save_text()
+        self._download_images()
 
         shutil.make_archive(self.download_path, "zip", self.download_path)
         shutil.rmtree(self.download_path)
 
+        debug("Archive created. All scraping finished succesfully.")
         return self

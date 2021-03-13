@@ -1,23 +1,32 @@
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.db import crud, models
-from app.db.database import get_db, engine
+from app.db import crud
+from app.db.database import setup_db, get_db, SessionLocal
 from app.utils.validators import is_valid_url
+from app.utils import log, utils
 from . import schemas
 from .scraper import Scraper
 
 
-models.Base.metadata.create_all(bind=engine)
-
+setup_db()
 app = FastAPI()
 
 
 def scrape_website(url: str, id: int):
-    Scraper(url, id).scrape()
+    """ Download website resources and update the database entry. """
+
+    try:
+        Scraper(url, id).scrape()
+    except:
+        log.debug("Unknown error:", exc_info=True)
+
+    status = "completed" if utils.is_zipped_file(id) else "failed"
+    crud.update_website_status(SessionLocal(), website_id=id, website_status=status)
+    log.debug(f"Website: {url} scraped and status updated in db under {id}")
 
 
 @app.post("/websites/", response_model=schemas.Website)
@@ -26,21 +35,19 @@ def post_website(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-
-    # validate website.url if right
     if not is_valid_url(website.url):
         raise HTTPException(status_code=422, detail="Provided URL is invalid.")
 
-    # validate if status pending - cannot add again
-    # if status failed - can add again
-
-    # if status failed add again
     db_website = crud.get_website_by_url(db, website_url=website.url)
     if db_website:
-        raise HTTPException(status_code=400, detail="Website already processed.")
+        if db_website.status != "failed":
+            raise HTTPException(
+                status_code=400, detail="Website already processed/processing."
+            )
 
     db_website = crud.create_website(db=db, website=website)
     background_tasks.add_task(scrape_website, url=website.url, id=db_website.id)
+    log.debug(f"Background task to scrape {website.url} added.")
     return db_website
 
 
@@ -55,7 +62,7 @@ def get_website(website_id: int, db: Session = Depends(get_db)):
     db_website = crud.get_website(db, website_id=website_id)
 
     if db_website is None:
-        raise HTTPException(status_code=404, detail="Website not found")
+        raise HTTPException(status_code=404, detail="Website not found.")
 
     return db_website
 
@@ -65,22 +72,10 @@ def download_website(website_id: int, db: Session = Depends(get_db)):
     db_website = crud.get_website(db, website_id=website_id)
 
     if db_website is None:
-        raise HTTPException(status_code=404, detail="Website not found")
+        raise HTTPException(status_code=404, detail="Website not found.")
 
-    # check for file on disk with id = website.id
-    # check on S3 for file
-    # if no file return response no resource available
-
-    return FileResponse(file, media_type="application/zip")
-
-
-# @app.delete("/websites/{website_id}/")
-# def delete_website(website_id: int, db: Session = Depends(get_db)):
-# db_website = crud.get_website(db, website_id=website_id)
-
-# if db_website is None:
-# raise HTTPException(status_code=404, detail="Website not found")
-
-# crud.delete_website(db, website_id=website_id)
-
-# return JSONResponse(status_code=200, content={"detail": "Website deleted"})
+    if utils.is_zipped_file(website_id):
+        log.debug(f"Sourcing files for {website_id}")
+        return FileResponse(path=utils.get_zipped_filename(website_id))
+    else:
+        raise HTTPException(status_code=404, detail="Website resources not found.")

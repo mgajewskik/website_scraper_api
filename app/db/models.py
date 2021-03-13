@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text
+from sqlalchemy import Column, Integer, String, DateTime
 
 from .database import Base
 
@@ -11,4 +11,3 @@ class Website(Base):
     started_at = Column(DateTime)
     status = Column(String, default="pending")
     completed_at = Column(DateTime, default=None)
-    text = Column(Text, default=None)

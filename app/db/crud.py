@@ -24,3 +24,12 @@ def create_website(db: Session, website: schemas.WebsiteCreate):
     db.commit()
     db.refresh(db_website)
     return db_website
+
+
+def update_website_status(db: Session, website_id: int, website_status: str):
+
+    db.query(models.Website).filter(models.Website.id == website_id).update(
+        {"status": website_status, "completed_at": datetime.datetime.now()}
+    )
+    db.commit()
+    db.close()

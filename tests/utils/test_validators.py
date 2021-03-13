@@ -10,7 +10,7 @@ from app.utils.validators import is_valid_url, is_valid_url_format
         ("google.pl", False),
         ("https://www.google.com", True),
         ("http://www.google.com", True),
-    ]
+    ],
 )
 def test_is_valid_url_format(url, expected):
 
@@ -26,7 +26,7 @@ def test_is_valid_url_format(url, expected):
         ("http://www.google.com", True),
         ("https://licensebuttons.net/p/zero/1.0/88x31.png", True),
         ("", False),
-    ]
+    ],
 )
 def test_is_valid_url(url, expected):
 
