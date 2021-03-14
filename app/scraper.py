@@ -6,10 +6,10 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from bs4.element import Comment
 
-from app.settings import DATA_PATH
-from app.utils.log import debug
-from app.utils.validators import is_valid_url
-from app.utils.utils import (
+from .settings import DATA_PATH
+from .utils.log import debug
+from .utils.validators import is_valid_url
+from .utils.utils import (
     make_dirs,
     get_filename_from_url,
     get_cleaned_filter,
@@ -34,8 +34,8 @@ class Scraper:
 
     def _is_tag_visible(self, element):
 
-        return not (
-            element.parent.name in self.visible_tags and isinstance(element, Comment)
+        return not element.parent.name in self.visible_tags and not isinstance(
+            element, Comment
         )
 
     def _parse_text(self, soup: BeautifulSoup):

@@ -24,7 +24,9 @@ def test_get_cleaned_filter(filter, expected):
     assert utils.get_cleaned_filter(filter) == expected
 
 
-@pytest.mark.parametrize("url, expected", [("xxx?/xxx", "xxx"), ("xxx", "xxx")])
+@pytest.mark.parametrize(
+    "url, expected", [("xxx?/xxx", "xxx"), ("xxx", "xxx"), (None, None)]
+)
 def test_remove_get_pair(url, expected):
 
     assert utils.remove_get_pair(url) == expected
@@ -33,8 +35,8 @@ def test_remove_get_pair(url, expected):
 @pytest.mark.parametrize(
     "id, expected",
     [
-        (1, "data/1.zip"),
-        (None, "data/None.zip"),
+        (1, "tests/test_data/1.zip"),
+        (None, "tests/test_data/None.zip"),
     ],
 )
 def test_get_zipped_filename(id, expected):

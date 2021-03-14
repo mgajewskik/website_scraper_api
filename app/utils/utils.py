@@ -1,9 +1,9 @@
 import os
 import re
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Union
 
-from app.settings import DATA_PATH
+from ..settings import DATA_PATH
 
 
 def make_dirs(path: str):
@@ -24,7 +24,7 @@ def get_cleaned_filter(filter: Iterable[str]) -> str:
     return re.sub("\n", " ", joined_text).strip()
 
 
-def remove_get_pair(url: str) -> str:
+def remove_get_pair(url: str) -> Union[str, None]:
     """
     Remove HTTP GET key value pair
     'image.jpg?c=3.2.5' -> 'image.jpg'
@@ -33,6 +33,8 @@ def remove_get_pair(url: str) -> str:
     try:
         index = url.index("?")
         return url[:index]
+    except AttributeError:
+        return
     except ValueError:
         return url
 

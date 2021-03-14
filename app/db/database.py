@@ -4,9 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
-from app.settings import POSTGRES_URL
-from . import models
-from app.utils import log
+from ..settings import POSTGRES_URL
 
 
 engine = create_engine(POSTGRES_URL)
@@ -21,9 +19,3 @@ def get_db() -> Generator[Session, Session, None]:
         yield db
     finally:
         db.close()
-
-
-def setup_db():
-
-    models.Base.metadata.create_all(bind=engine)
-    log.debug("All tables created. Database ready.")

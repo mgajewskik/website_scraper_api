@@ -4,15 +4,18 @@ from fastapi import Depends, FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.db import crud
-from app.db.database import setup_db, get_db, SessionLocal
-from app.utils.validators import is_valid_url
-from app.utils import log, utils
-from . import schemas
+from .db import crud, models
+from .db.database import engine, get_db, SessionLocal
+from .utils.validators import is_valid_url
+from .utils import log, utils
 from .scraper import Scraper
+from .schemas import Website, WebsiteCreate
 
 
-setup_db()
+models.Base.metadata.create_all(bind=engine)
+log.debug("All tables created. Database ready.")
+
+
 app = FastAPI()
 
 
@@ -29,9 +32,9 @@ def scrape_website(url: str, id: int):
     log.debug(f"Website: {url} scraped and status updated in db under {id}")
 
 
-@app.post("/websites/", response_model=schemas.Website)
+@app.post("/websites/", response_model=Website)
 def post_website(
-    website: schemas.WebsiteCreate,
+    website: WebsiteCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
@@ -51,13 +54,13 @@ def post_website(
     return db_website
 
 
-@app.get("/websites/", response_model=List[schemas.Website])
+@app.get("/websites/", response_model=List[Website])
 def get_websites(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     websites = crud.get_websites(db, skip=skip, limit=limit)
     return websites
 
 
-@app.get("/websites/{website_id}", response_model=schemas.Website)
+@app.get("/websites/{website_id}", response_model=Website)
 def get_website(website_id: int, db: Session = Depends(get_db)):
     db_website = crud.get_website(db, website_id=website_id)
 
