@@ -1,4 +1,5 @@
 import os
+import time
 import shutil
 import requests
 from urllib.parse import urljoin
@@ -28,6 +29,27 @@ class Scraper:
 
         self.text = ""
         self.img_urls = list()
+
+    def scrape(self) -> "Scraper":
+        debug(f"Scraping started for {self.id}: {self.url}")
+        start = time.time()
+
+        soup = BeautifulSoup(self.get_url_text(), "html.parser")
+
+        self._parse_text(soup)
+        self._parse_img_urls(soup)
+
+        make_dirs(self.download_path)
+        self._save_text()
+        self._download_images()
+
+        shutil.make_archive(self.download_path, "zip", self.download_path)
+        shutil.rmtree(self.download_path)
+
+        debug(
+            f"Archive created. All scraping finished succesfully in: {str(time.time() - start)} seconds."
+        )
+        return self
 
     def get_url_text(self) -> str:
         return requests.get(self.url).text
@@ -77,21 +99,3 @@ class Scraper:
                         f.write(chunk)
 
         debug(f"Saved {count} images into {self.download_path}")
-
-    def scrape(self) -> "Scraper":
-        debug(f"Scraping started for {self.id}: {self.url}")
-
-        soup = BeautifulSoup(self.get_url_text(), "html.parser")
-
-        self._parse_text(soup)
-        self._parse_img_urls(soup)
-
-        make_dirs(self.download_path)
-        self._save_text()
-        self._download_images()
-
-        shutil.make_archive(self.download_path, "zip", self.download_path)
-        shutil.rmtree(self.download_path)
-
-        debug("Archive created. All scraping finished succesfully.")
-        return self

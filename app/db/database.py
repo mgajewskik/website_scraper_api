@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from ..settings import POSTGRES_URL
 
 
-engine = create_engine(POSTGRES_URL)
+engine = create_engine(POSTGRES_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
